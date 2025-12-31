@@ -1,0 +1,35 @@
+name: Windows RDP
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rdp:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+    - name: Create User
+      run: |
+        net user rdpuser StrongPass@123 /add
+        net localgroup administrators rdpuser /add
+
+    - name: Enable RDP
+      run: |
+        reg add "HKLM\System\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+    - name: Download cloudflared
+      run: |
+        curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe -o cloudflared.exe
+
+    - name: Start RDP Tunnel
+      run: |
+        Start-Process -NoNewWindow -FilePath .\cloudflared.exe -ArgumentList "tunnel --no-autoupdate --url tcp://localhost:3389"
+        Start-Sleep -Seconds 15
+
+    - name: Show Login Info
+      run: |
+        echo "Username: rdpuser"
+        echo "Password: StrongPass@123"
+        echo "Check ABOVE logs for trycloudflare.com address"
