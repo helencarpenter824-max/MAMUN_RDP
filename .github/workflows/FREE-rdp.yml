@@ -1,0 +1,34 @@
+name: Windows RDP (Tailscale)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rdp:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+    - name: Create RDP User
+      run: |
+        net user rdpuser StrongPass@123 /add
+        net localgroup administrators rdpuser /add
+
+    - name: Enable RDP
+      run: |
+        reg add "HKLM\System\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+    - name: Install Tailscale
+      run: |
+        curl -fsSL https://tailscale.com/install.ps1 | powershell -
+
+    - name: Connect Tailscale
+      run: |
+        tailscale up --authkey $env:TAILSCALE_AUTHKEY --hostname github-rdp
+
+    - name: Show RDP Info
+      run: |
+        tailscale ip -4
+        echo "Username: rdpuser"
+        echo "Password: StrongPass@123"
