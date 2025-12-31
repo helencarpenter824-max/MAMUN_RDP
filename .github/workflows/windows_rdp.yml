@@ -1,4 +1,4 @@
-name: Windows RDP (Safe)
+name: Windows RDP (Cloudflare Safe)
 
 on:
   workflow_dispatch:
@@ -14,11 +14,22 @@ jobs:
         net user rdpuser StrongPass@123 /add
         net localgroup administrators rdpuser /add
 
-    - name: Enable Remote Desktop
+    - name: Enable RDP
       run: |
         reg add "HKLM\System\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
+    - name: Download Cloudflare Tunnel
+      run: |
+        curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe -o cloudflared.exe
+
+    - name: Start RDP Tunnel
+      run: |
+        Start-Process -NoNewWindow -FilePath .\cloudflared.exe -ArgumentList "tunnel --url tcp://localhost:3389"
+        timeout /t 10
+
     - name: Show Login Info
       run: |
-        ipconfig
+        echo "Username: rdpuser"
+        echo "Password: StrongPass@123"
+        echo "Check logs ABOVE for Cloudflare TCP address"
